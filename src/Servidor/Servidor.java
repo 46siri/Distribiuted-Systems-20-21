@@ -29,11 +29,13 @@ public class Servidor {
 
         private Socket replyer;
         private Localizacao local;
+       // private ServerSocket ss;
 
 
         public ControladorUser(Socket c, Localizacao local) {
             replyer = c;
             this.local = local;
+            //this.ss=ss;
         }
         /**
          * Método run que é executado pela thread.
@@ -67,9 +69,8 @@ public class Servidor {
                             System.out.println(pass);
                             ans = local.login(user, pass );
                             if (ans.equals("ok")) {
-                                //ServerSocket ss = new ServerSocket(65000);
                                 //Socket not = ss.accept();
-                                local.getNotifcacoes().put(user,replyer);
+                                local.getNotifcacoes().put(user,out);
                                 aux = false;
                                 out.println(ans);
                             } else if(ans.equals("admin")){
@@ -111,18 +112,19 @@ public class Servidor {
                                 out.println(i);
                                 break;
                             case "infetado":
-                                List<Socket> notifica = new ArrayList<>();
-                                local.addInfetado(arrOfStr[1]);
-                                local.changePassword(arrOfStr[1],"userInfected##");
-                                local.adicionaHistoricoInfecoes(arrOfStr[1]);
+                                List<PrintWriter> notifica = new ArrayList<>();
                                 notifica = local.notifica(arrOfStr[1]);
                                 if(notifica!=null) {
                                     for (int iterator = 0; iterator < notifica.size(); iterator++) {
                                         System.out.println("olaaaaaaaaa");
-                                        PrintWriter pw = new PrintWriter(notifica.get(iterator).getOutputStream(), true);
-                                        pw.println("Uma pessoa que você cruzou ficou infetado, faça isolamento!");
+                                       // PrintWriter pw = new PrintWriter(notifica.get(iterator).getOutputStream(), true);
+                                        System.out.println("tttttttttttttttt");
+                                        notifica.get(iterator).println("Uma pessoa que você cruzou ficou infetado, faça isolamento!");
                                     }
                                 }
+                                local.addInfetado(arrOfStr[1]);
+                                local.changePassword(arrOfStr[1],"userInfected##");
+                                local.adicionaHistoricoInfecoes(arrOfStr[1]);
                                 out.println("Faça quarentena e um desejo de melhoras");
                                 break;
                             case "mudaPass":

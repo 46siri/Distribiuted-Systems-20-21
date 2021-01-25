@@ -78,7 +78,7 @@ public class Client {
                             //t.start();
                             Socket s = new Socket("127.0.0.1", 65000);
                             BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
-                            menu(br, replyer, in, out, input);
+                            menu(br, s, in, out, input);
                         }
                         else if (sucesso == 2){
                             menuAdmin(in,out,input);

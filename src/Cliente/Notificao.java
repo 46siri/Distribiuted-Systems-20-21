@@ -15,13 +15,14 @@ public class Notificao implements Runnable {
         try {
             String r;
             while(socket.isBound()) {
+                System.out.println("qqqqqqqqqq");
                 r = conn.readLine();
-                System.out.println(r);
+                System.out.println("wwwwwwwwwwwww");
+
 
                 while (!r.isEmpty()) {
-                    r = conn.readLine();
                     System.out.println(r);
-
+                    r = conn.readLine();
                 }
             }
         }

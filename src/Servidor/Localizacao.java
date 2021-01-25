@@ -3,6 +3,7 @@ package Servidor;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,7 +16,7 @@ import java.util.stream.Collectors;
  * Classe Localizacao responsável por guardar o mapa das localizações dos utilizadores .
  */
 public class Localizacao {
-    private Map<String, Socket> notifcacoes;
+    private Map<String, PrintWriter> notifcacoes;
     private final int aresta;
     private List<String> [][] mapa;
     private List<String> [][] mapaHistoricoUtilizadores;
@@ -312,13 +313,13 @@ public class Localizacao {
         }
         }
 
-    public Map<String, Socket> getNotifcacoes() {
+    public Map<String, PrintWriter> getNotifcacoes() {
         return notifcacoes;
     }
 
-    public List<Socket> notifica(String user){
+    public List<PrintWriter> notifica(String user){
         List<String> temp = new ArrayList<>();
-        List<Socket> temp2 = new ArrayList<>();
+        List<PrintWriter> temp2 = new ArrayList<>();
         if(contactos.get(user)!=null) {
             temp = this.contactos.get(user);
             for (int i = 0; i < temp.size(); i++) {

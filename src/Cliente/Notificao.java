@@ -14,11 +14,9 @@ public class Notificao implements Runnable {
     public void run() {
         try {
             String r;
+            //while if is alive
             while(socket.isBound()) {
-                System.out.println("qqqqqqqqqq");
                 r = conn.readLine();
-                System.out.println("wwwwwwwwwwwww");
-
 
                 while (!r.isEmpty()) {
                     System.out.println(r);

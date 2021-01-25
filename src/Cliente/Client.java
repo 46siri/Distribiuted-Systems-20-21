@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Classe responsável por ligar um cliente ao servidor.
@@ -38,16 +36,15 @@ public class Client {
     public static boolean validXY(String x, String y) {
         try {
             if (Integer.parseInt(x) <= 20 && Integer.parseInt(x) >= 0 && Integer.parseInt(y) <= 20 && Integer.parseInt(y) >= 0)
-                return true;
+                return false;
         } catch (Exception e) {
-            return false;
+            return true;
         }
-        return false;
+        return true;
     }
 
     public static void main(String[] dab) throws IOException {
         Socket replyer = new Socket("127.0.0.1", 65000);
-        //Socket notifica = new Socket("127.0.0.1", 65000);
 
         try {
             PrintWriter out = new PrintWriter(replyer.getOutputStream(), true);
@@ -62,47 +59,40 @@ public class Client {
                 String username;
                 String password;
                 switch (option) {
-                    case "1":
+                    case "1" -> {
                         System.out.println("Inserir :");
                         username = input.readLine();
                         myname = username;
                         System.out.println("Inserir password:");
                         password = input.readLine();
                         mypass = password;
-                        int sucesso = login(username, password, in, out, input);
-                        if(sucesso == 1){
-                            //Notificao notificao = new Notificao(in,replyer);
-                            //Menu menu = new Menu(in,out,input,myname,mypass);
-                            //Thread t1 = new Thread(menu);
-                            //Thread t = new Thread(notificao);
-                            //t.start();
+                        int sucesso = login(username, password, in, out);
+                        if (sucesso == 1) {
                             Socket s = new Socket("127.0.0.1", 65000);
                             BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
                             menu(br, s, in, out, input);
+                        } else if (sucesso == 2) {
+                            menuAdmin(in, out, input);
                         }
-                        else if (sucesso == 2){
-                            menuAdmin(in,out,input);
-                        }
-                        //menu(in, out, input);
-                        break;
-                    case "2":
+                    }
+                    case "2" -> {
                         System.out.println("Inserir :");
                         username = input.readLine();
                         System.out.println("Inserir password:");
                         password = input.readLine();
                         registar(username, password, out, in);
-                        break;
-                    case "3":
-                        aux = false;
-                        break;
+                    }
+                    case "3" -> aux = false;
                 }
             }
 
             input.close();
+            in.close();
+            out.close();
         } catch (Exception e) {
-
+            System.out.println(e.getMessage());
         }
-
+        replyer.close();
     }
 
 
@@ -119,7 +109,6 @@ public class Client {
 
             String args = "registar," + username + "," + password;
             requester.println(args);
-            //receber resposta
             String reply = in.readLine();
             if (reply.equals("ok")) {
                 System.out.println("Foi registado com sucesso");
@@ -133,21 +122,16 @@ public class Client {
      * @param password password do utilizador previamente registado.
      * @param requester pedido feito do cliente.
      * @param in resposta enviada do servidor.
-     * @param input input.
      * @throws IOException
      */
-    //Nota um request tem de ser seguido de um reply
-    private static int login(String username, String password, BufferedReader in, PrintWriter requester, BufferedReader input) throws IOException {
+
+    private static int login(String username, String password, BufferedReader in, PrintWriter requester) throws IOException {
         String args = "login," + username + "," + password;
         requester.println(args);
-        //receber resposta
         String reply = in.readLine();
 
         if (reply.equals("ok")) {
             System.out.println("Login feito com sucesso");
-            //Notificao n = new Notificao(in,s);
-            //Thread t1 = new Thread(n);
-            //menu(in, requester, input);
             return 1;
         }else if(reply.equals("admin")){
             System.out.println("Bem vindo admin");
@@ -167,7 +151,6 @@ public class Client {
      */
 
     private static void menu(BufferedReader br, Socket s , BufferedReader in, PrintWriter requester, BufferedReader input) throws IOException {
-        System.out.println("olaaaaaa");
         //BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
         Notificao notificao = new Notificao(br,s);
         Thread t = new Thread(notificao);
@@ -176,9 +159,7 @@ public class Client {
         String x, y;
         String args;
         String reply;
-        System.out.println("oleeeeeee");
         while (aux) {
-            System.out.println("olooooooo");
             System.out.println("1-Change my Localization\n2-Where To Go safely?\n3-I am Infected\n4-Add My Localization\n5-Change My Password\n0-Close");
             String option = input.readLine();
             switch (option) {
@@ -191,7 +172,7 @@ public class Client {
                     break;
                 case "1":
                     x = y = "-1";
-                    while (!validXY(x, y)) {
+                    while (validXY(x, y)) {
                         System.out.println("Escreva as suas coordenadas. apenas serão consideradas validas se o valor se encontrar entre 0 e 20.");
                         System.out.println("Inserir coordenada x:");
                         x = input.readLine();
@@ -211,7 +192,7 @@ public class Client {
                     break;
                 case "2":
                     x = y = "-1";
-                    while (!validXY(x, y)) {
+                    while (validXY(x, y)) {
                         System.out.println("Escreva as suas coordenadas. apenas serão consideradas validas se o valor se encontrar entre 0 e 20.");
                         System.out.println("Inserir coordenada x:");
                         x = input.readLine();
@@ -225,12 +206,11 @@ public class Client {
                     break;
 
                 case "3":
-                    System.out.println("Quer confirmar que está infetado?\n Pressione 'Y' se sim");
+                    System.out.println("Quer confirmar que está infetado?\n Pressione 'S' se sim");
                     String confirmation = input.readLine();
-                    if (confirmation.equals("y") || confirmation.equals("Y")) {
+                    if (confirmation.equals("s") || confirmation.equals("S")) {
                         args = "infetado" + "," + myname + "," + mypass;
                         requester.println(args);
-                        //receber possível notificação de alteração
                         reply = in.readLine();
                         System.out.println(reply);
                         aux = false;
@@ -238,7 +218,7 @@ public class Client {
                     break;
                 case "4":
                     x = y = "-1";
-                    while (!validXY(x, y)) {
+                    while (validXY(x, y)) {
                         System.out.println("Escreva as suas coordenadas. apenas serão consideradas validas se o valor se encontrar entre 0 e 20.");
                         System.out.println("Inserir coordenada x:");
                         x = input.readLine();

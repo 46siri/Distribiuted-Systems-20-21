@@ -4,12 +4,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.SocketHandler;
 import java.util.stream.Collectors;
 
 /**
@@ -22,9 +20,7 @@ public class Localizacao {
     private List<String> [][] mapaHistoricoUtilizadores;
     private List<String> [][] mapaHistoricoInfecoes;
     private Map<String, ArrayList<String>> contactos;
-    private int numUtilizadores;
     private int numInfetados;
-    private Map<String,String> userDistrict;
     private Map<String,String> userPassword;
     private RWLock lock ;
 
@@ -57,40 +53,11 @@ public class Localizacao {
             }
         }
         this.contactos = new HashMap();
-        userDistrict = new HashMap<>();
         userPassword = new HashMap<>();
         this.lock = new RWLock();
     }
 
-    /**
-     Método get para o valor da aresta.
-     @return int com o valor da aresta.
-     */
-    public int getAresta(){
-        return  this.aresta;
-    }
-    /**
-     Método get para o mapa.
-     @return List<String>[][] do mapa.
-     */
-    public List<String>[][] getMapa() {
-        return mapa;
-    }
-    public int getNumUtilizadores() {
-        try{
-            lock.readLock();
-        return this.numUtilizadores;
-        }finally {
-            lock.readUnlock();
-        }
 
-    }
-    /**
-     Método para guardar a entrada de um utilizador após feito o registo.
-     */
-    public void entradaUtilizador() {
-        ++this.numUtilizadores;
-    }
     /**
      Método get para o número de utilizadores infetados.
      @return int com o número de Utilizadores infetados.
@@ -131,21 +98,6 @@ public class Localizacao {
         }
     }
 
-    /**
-     Método para deslocar um dado utilizador que queira ser
-     @return int com o número de Utilizadores.
-     */
-
-    public void deslocacaoUtilizador() {
-        try{
-            lock.writeLock();
-            ++this.numUtilizadores;
-        }finally {
-            lock.writeUnlock();
-        }
-
-    }
-
 
     public void adicionaHistoricoUsers(String user, int x, int y){
         try{lock.writeLock();
@@ -176,41 +128,26 @@ public class Localizacao {
 
 
 
-    public String moveTo (String user, int x, int y){
-        // descobrir e retirar da antiga localização
-        int oldX = -1, oldY = -1;
-        boolean primeiraEntrada = true;
-        String rep = "ficou,acabou";
+    public void moveTo (String user, int x, int y){
         try{lock.writeLock();
         for (int row = 0; row < aresta; row++) {
             for (int col = 0; col < aresta; col++) {
                 if(mapa[row][col] != null && mapa[row][col].contains(user)){
                     System.out.println(row + col);
                     if( row != x || col != y){
-                        primeiraEntrada = false;
-                        oldX = row; oldY = col;
                         mapa[row][col].remove(user);
                         System.out.println(mapa[row][col].size());
-                        // notificar caso a localização fique vazia
-                        //if(mapa[oldX][oldY].isEmpty()) rep = "vazia," + String.valueOf(oldX) + "," + String.valueOf(oldY) + ",";
-                        //else rep ="saiu," + String.valueOf(oldX) + "," + String.valueOf(oldY) + ",";
-                        break;}
-                    else break;
+                    }
+                    break;
                 }
             }
         }
-        if(primeiraEntrada) entradaUtilizador();
         // mover para nova localização
         if(mapa[x][y] == null) mapa[x][y] = new ArrayList<>();
         if(!mapa[x][y].contains(user)){
             this.atualizarContactos(user, x, y);
             mapa[x][y].add(user);
-            if(primeiraEntrada)
-                rep ="entrou,acabou";
         }
-        // notificar entrada em localização
-
-        return rep;
     }finally {
             lock.writeUnlock();
         }
@@ -318,12 +255,12 @@ public class Localizacao {
     }
 
     public List<PrintWriter> notifica(String user){
-        List<String> temp = new ArrayList<>();
+        List<String> temp;
         List<PrintWriter> temp2 = new ArrayList<>();
         if(contactos.get(user)!=null) {
             temp = this.contactos.get(user);
-            for (int i = 0; i < temp.size(); i++) {
-                temp2.add(this.notifcacoes.get(temp.get(i)));
+            for (String s : temp) {
+                temp2.add(this.notifcacoes.get(s));
             }
             return temp2;
         }
@@ -334,7 +271,6 @@ public class Localizacao {
         try {
             lock.readLock();
             System.out.println("oooooooooo");
-            File myObj = new File(path);
             System.out.println("uuuuuuuuuu");
             FileWriter myWriter = new FileWriter(path);
             for(int i =0 ; i< aresta;i++){

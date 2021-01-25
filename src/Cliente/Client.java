@@ -76,8 +76,9 @@ public class Client {
                             //Thread t1 = new Thread(menu);
                             //Thread t = new Thread(notificao);
                             //t.start();
-                            //Socket s = new Socket("127.0.0.1", 65000);
-                            menu(replyer, in, out, input);
+                            Socket s = new Socket("127.0.0.1", 65000);
+                            BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                            menu(br, replyer, in, out, input);
                         }
                         else if (sucesso == 2){
                             menuAdmin(in,out,input);
@@ -165,12 +166,12 @@ public class Client {
      * @throws IOException
      */
 
-    private static void menu(Socket s , BufferedReader in, PrintWriter requester, BufferedReader input) throws IOException {
+    private static void menu(BufferedReader br, Socket s , BufferedReader in, PrintWriter requester, BufferedReader input) throws IOException {
         System.out.println("olaaaaaa");
         //BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
-        Notificao notificao = new Notificao(in,s);
+        Notificao notificao = new Notificao(br,s);
         Thread t = new Thread(notificao);
-       // t.start();
+        t.start();
         boolean aux = true;
         String x, y;
         String args;

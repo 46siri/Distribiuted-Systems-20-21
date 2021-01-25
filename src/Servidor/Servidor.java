@@ -141,6 +141,8 @@ public class Servidor {
                                 break;
                         }
                     }
+                    out.close();
+                    in.close();
                 } catch (IOException ioException) {
                 ioException.printStackTrace();
             }

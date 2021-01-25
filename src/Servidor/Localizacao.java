@@ -147,11 +147,18 @@ public class Localizacao {
 
 
     public void adicionaHistoricoUsers(String user, int x, int y){
+        try{lock.writeLock();
         if (!mapaHistoricoUtilizadores[x][y].contains(user)){
             this.mapaHistoricoUtilizadores[x][y].add(user);
         }
-    }
+    }finally {
+            lock.writeUnlock();
+        }
+        }
+
     public void adicionaHistoricoInfecoes(String user){
+        try{
+        lock.writeLock();
         for(int i = 0; i < aresta ; i++){
             for(int j = 0; j < aresta ; j++){
                 if(mapa[i][j].contains(user)){
@@ -161,9 +168,10 @@ public class Localizacao {
                 }
             }
         }
-
-
-    }
+    }finally {
+            lock.writeUnlock();
+        }
+        }
 
 
 
@@ -288,7 +296,6 @@ public class Localizacao {
                 return "invalid_password";
         }finally {
                 lock.readUnlock();
-
             }
             }
         else{
@@ -297,15 +304,16 @@ public class Localizacao {
     }
 
     public void changePassword(String nome, String novaPass){
+        try{
+            lock.writeLock();
         this.userPassword.put(nome,novaPass);
-    }
+    }finally {
+            lock.writeUnlock();
+        }
+        }
 
     public Map<String, Socket> getNotifcacoes() {
         return notifcacoes;
-    }
-
-    public void setNotifcacoes(Map<String, Socket> notifcacoes) {
-        this.notifcacoes = notifcacoes;
     }
 
     public List<Socket> notifica(String user){
@@ -323,6 +331,7 @@ public class Localizacao {
 
     public int escreveMapa(String path){
         try {
+            lock.readLock();
             System.out.println("oooooooooo");
             File myObj = new File(path);
             System.out.println("uuuuuuuuuu");
@@ -338,6 +347,8 @@ public class Localizacao {
         } catch (IOException e) {
             e.printStackTrace();
             return 0;
+        }finally {
+            lock.readUnlock();
         }
     }
 

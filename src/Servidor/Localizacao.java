@@ -1,14 +1,25 @@
 package Servidor;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.SocketHandler;
 import java.util.stream.Collectors;
 
+/**
+ * Classe Localizacao responsável por guardar o mapa das localizações dos utilizadores .
+ */
 public class Localizacao {
+    private Map<String, Socket> notifcacoes;
     private final int aresta;
     private List<String> [][] mapa;
+    private List<String> [][] mapaHistoricoUtilizadores;
+    private List<String> [][] mapaHistoricoInfecoes;
     private Map<String, ArrayList<String>> contactos;
     private int numUtilizadores;
     private int numInfetados;
@@ -16,13 +27,32 @@ public class Localizacao {
     private Map<String,String> userPassword;
     private RWLock lock ;
 
-    public Localizacao(int aresta){
 
+
+    /**
+     Construtor da class Localizacao.
+     @param aresta aresta indicada pelo utilizador para definir a sua localização no mapa.
+     */
+
+    public Localizacao(int aresta){
+        this.notifcacoes = new HashMap<>();
         this.aresta = aresta;
         this.mapa = new ArrayList [aresta][aresta];
         for(int i = 0; i<aresta;i++){
             for(int j = 0 ; j < aresta; j++){
                this.mapa[i][j] = new ArrayList<>();
+            }
+        }
+        this.mapaHistoricoUtilizadores = new ArrayList [aresta][aresta];
+        for(int i = 0; i<aresta;i++){
+            for(int j = 0 ; j < aresta; j++){
+                this.mapaHistoricoUtilizadores[i][j] = new ArrayList<>();
+            }
+        }
+        this.mapaHistoricoInfecoes = new ArrayList [aresta][aresta];
+        for(int i = 0; i<aresta;i++){
+            for(int j = 0 ; j < aresta; j++){
+                this.mapaHistoricoInfecoes[i][j] = new ArrayList<>();
             }
         }
         this.contactos = new HashMap();
@@ -31,11 +61,17 @@ public class Localizacao {
         this.lock = new RWLock();
     }
 
-
+    /**
+     Método get para o valor da aresta.
+     @return int com o valor da aresta.
+     */
     public int getAresta(){
         return  this.aresta;
     }
-
+    /**
+     Método get para o mapa.
+     @return List<String>[][] do mapa.
+     */
     public List<String>[][] getMapa() {
         return mapa;
     }
@@ -48,21 +84,56 @@ public class Localizacao {
         }
 
     }
-
+    /**
+     Método para guardar a entrada de um utilizador após feito o registo.
+     */
     public void entradaUtilizador() {
         ++this.numUtilizadores;
     }
-
+    /**
+     Método get para o número de utilizadores infetados.
+     @return int com o número de Utilizadores infetados.
+     */
     public int getNumInfetados() {
         return this.numInfetados;
     }
+    /**
+     Método get para o número de utilizadores numa dada localização.
+     @param x posição x (
+     @return int com o número de Utilizadores numa dada localização.
+     */
     public int getNumUsersLocalizacao(int x, int y) {
-        try {
+        try {lock.readLock();
             return this.mapa[x][y].size();
-        } catch (Exception var4) {
+        } catch (Exception e) {
             return 0;
+        }finally {
+            lock.readUnlock();
         }
     }
+    public int getNumUsersHistorico(int x, int y) {
+        try {lock.readLock();
+            return this.mapaHistoricoUtilizadores[x][y].size();
+        } catch (Exception e) {
+            return 0;
+        }finally {
+            lock.readUnlock();
+        }
+    }
+    public int getNumUsersInfecao(int x, int y) {
+        try {lock.readLock();
+            return this.mapaHistoricoInfecoes[x][y].size();
+        } catch (Exception e) {
+            return 0;
+        }finally {
+            lock.readUnlock();
+        }
+    }
+
+    /**
+     Método para deslocar um dado utilizador que queira ser
+     @return int com o número de Utilizadores.
+     */
 
     public void deslocacaoUtilizador() {
         try{
@@ -73,11 +144,35 @@ public class Localizacao {
         }
 
     }
+
+
+    public void adicionaHistoricoUsers(String user, int x, int y){
+        if (!mapaHistoricoUtilizadores[x][y].contains(user)){
+            this.mapaHistoricoUtilizadores[x][y].add(user);
+        }
+    }
+    public void adicionaHistoricoInfecoes(String user){
+        for(int i = 0; i < aresta ; i++){
+            for(int j = 0; j < aresta ; j++){
+                if(mapa[i][j].contains(user)){
+                    if (!mapaHistoricoInfecoes[i][j].contains(user)){
+                        this.mapaHistoricoInfecoes[i][j].add(user);
+                    }
+                }
+            }
+        }
+
+
+    }
+
+
+
     public String moveTo (String user, int x, int y){
         // descobrir e retirar da antiga localização
         int oldX = -1, oldY = -1;
         boolean primeiraEntrada = true;
         String rep = "ficou,acabou";
+        try{lock.writeLock();
         for (int row = 0; row < aresta; row++) {
             for (int col = 0; col < aresta; col++) {
                 if(mapa[row][col] != null && mapa[row][col].contains(user)){
@@ -88,8 +183,8 @@ public class Localizacao {
                         mapa[row][col].remove(user);
                         System.out.println(mapa[row][col].size());
                         // notificar caso a localização fique vazia
-                        if(mapa[oldX][oldY].isEmpty()) rep = "vazia," + String.valueOf(oldX) + "," + String.valueOf(oldY) + ",";
-                        else rep ="saiu," + String.valueOf(oldX) + "," + String.valueOf(oldY) + ",";
+                        //if(mapa[oldX][oldY].isEmpty()) rep = "vazia," + String.valueOf(oldX) + "," + String.valueOf(oldY) + ",";
+                        //else rep ="saiu," + String.valueOf(oldX) + "," + String.valueOf(oldY) + ",";
                         break;}
                     else break;
                 }
@@ -107,7 +202,11 @@ public class Localizacao {
         // notificar entrada em localização
 
         return rep;
-    }
+    }finally {
+            lock.writeUnlock();
+        }
+        }
+
     private void atualizarContactos(String user, int x, int y) {
         List<String> temp = mapa[x][y];
         ArrayList<String> contactosUser = contactos.get(user);
@@ -160,81 +259,86 @@ public class Localizacao {
             return "ja_existe_nome";
         }
         else{
-            this.userPassword.put(nome,pass);
-            return "ok";
+            try {
+                lock.writeLock();
+                this.userPassword.put(nome, pass);
+                return "ok";
+            }finally {
+                lock.writeUnlock();
+            }
         }
     }
 
     public String login(String nome, String pass) {
+        if(nome.equals("admin") && pass.equals("admin")){
+            System.out.println("olaaaaa");
+            return "admin";
+            }
         if (userPassword.containsKey(nome)) {
             String password = this.userPassword.get(nome);
-            if (password.equals(pass))
+            try{lock.readLock();
+            if (password.equals(pass)) {
                 return "ok";
+            }
             else if (password.equals("userInfected##")) {
                 return "User Bloqueado. Mantenha as normas da DGS e continue em isolamento.";
             } else if (this.userPassword.get(nome) == null) {
                 return "invalid_username";
             } else
                 return "invalid_password";
-        }
+        }finally {
+                lock.readUnlock();
+
+            }
+            }
         else{
             return "utilizador_inexistente";
         }
-    }
-
-
-    public int utilizadoresPosicao(int x, int y){
-        return mapa[x][y].size();
     }
 
     public void changePassword(String nome, String novaPass){
         this.userPassword.put(nome,novaPass);
     }
 
-  /*  public void adicionaNovaLocalizacao(String user, int x, int y) {
-        this.mapa[x][y].add(user);
-        atualizarContactos(user,x,y);
-
+    public Map<String, Socket> getNotifcacoes() {
+        return notifcacoes;
     }
 
-    public String mudarLocalizacao(String nome, int x, int y){
-        Boolean encontrou = false;
-        System.out.println(aresta);
-        for(int i = 0; i < aresta || encontrou ; i++){
-            for(int j = 0; j < aresta || encontrou ; j++){
-                if(mapa[i][j]!=null && mapa[i][j].contains(nome)) {
-                    System.out.println(i + ","+ j);
-                    encontrou = true;
-                    if (x == i && y == j) {
-                        System.out.println(x+","+i+"-"+y+","+j);
-                        System.out.println("ola");
-                        return "mesmaPosicao";
-                    } else {
-                        mapa[i][j].remove(nome);
-                        mapa[x][y].add(nome);
-                        atualizarContactos(nome, x, y);
-                    }
-                }
-            }
-        }
-        System.out.println("ole");
-        return "ok";
+    public void setNotifcacoes(Map<String, Socket> notifcacoes) {
+        this.notifcacoes = notifcacoes;
     }
-    public void atualizaHistorial(String nome, int x, int y){
-        ArrayList<String> temp = new ArrayList<>();
-        ArrayList<String> temp2 = new ArrayList<>();
-        if(mapa[x][y].size()>0) {
-            temp = mapa[x][y];
-        }
-        if(this.contactos.containsKey(nome) && this.contactos.get(nome)!=null && this.contactos.size()>0){
-            temp2 = contactos.get(nome);
-            for(int i = 0 ; i< temp.size();i++){
-                temp.add(temp2.get(i));
+
+    public List<Socket> notifica(String user){
+        List<String> temp = new ArrayList<>();
+        List<Socket> temp2 = new ArrayList<>();
+        if(contactos.get(user)!=null) {
+            temp = this.contactos.get(user);
+            for (int i = 0; i < temp.size(); i++) {
+                temp2.add(this.notifcacoes.get(temp.get(i)));
             }
+            return temp2;
         }
-        contactos.put(nome,temp);
+        return null;
+    }
 
-
-    }*/
+    public int escreveMapa(String path){
+        try {
+            System.out.println("oooooooooo");
+            File myObj = new File(path);
+            System.out.println("uuuuuuuuuu");
+            FileWriter myWriter = new FileWriter(path);
+            for(int i =0 ; i< aresta;i++){
+                for (int j = 0 ; j < aresta; j++){
+                    myWriter.write(getNumUsersHistorico(i,j)+ "_" + getNumUsersInfecao(i,j) + "||");
+            }
+                myWriter.write("\n");
+        }
+            myWriter.close();
+            return 1;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
 
 }

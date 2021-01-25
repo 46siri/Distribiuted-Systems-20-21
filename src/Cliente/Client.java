@@ -27,6 +27,10 @@ import java.net.Socket;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Classe responsável por ligar um cliente ao servidor.
+ */
+
 public class Client {
     private static String myname;
     private static String mypass;
@@ -43,11 +47,11 @@ public class Client {
 
     public static void main(String[] dab) throws IOException {
         Socket replyer = new Socket("127.0.0.1", 65000);
+        //Socket notifica = new Socket("127.0.0.1", 65000);
+
         try {
             PrintWriter out = new PrintWriter(replyer.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(replyer.getInputStream()));
-
-
             BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
 
             boolean aux = true;
@@ -65,7 +69,20 @@ public class Client {
                         System.out.println("Inserir password:");
                         password = input.readLine();
                         mypass = password;
-                        login(username, password, in, out, input);
+                        int sucesso = login(username, password, in, out, input);
+                        if(sucesso == 1){
+                            //Notificao notificao = new Notificao(in,replyer);
+                            //Menu menu = new Menu(in,out,input,myname,mypass);
+                            //Thread t1 = new Thread(menu);
+                            //Thread t = new Thread(notificao);
+                            //t.start();
+                            //Socket s = new Socket("127.0.0.1", 65000);
+                            menu(replyer, in, out, input);
+                        }
+                        else if (sucesso == 2){
+                            menuAdmin(in,out,input);
+                        }
+                        //menu(in, out, input);
                         break;
                     case "2":
                         System.out.println("Inserir :");
@@ -88,7 +105,14 @@ public class Client {
     }
 
 
-
+    /**
+     * Método para fazer um novo registo.
+     * @param username username do novo utilizador.
+     * @param password password do novo utilizador.
+     * @param requester pedido feito do cliente.
+     * @param in resposta enviada do servidor.
+     * @throws IOException
+     */
     //Nota um request tem de ser seguido de um reply
     private static void registar(String username, String password, PrintWriter requester, BufferedReader in) throws IOException {
 
@@ -102,34 +126,64 @@ public class Client {
                 System.out.println(reply);
 
     }
-
+    /**
+     * Método para fazer o login.
+     * @param username username do utilizador previamente registado.
+     * @param password password do utilizador previamente registado.
+     * @param requester pedido feito do cliente.
+     * @param in resposta enviada do servidor.
+     * @param input input.
+     * @throws IOException
+     */
     //Nota um request tem de ser seguido de um reply
-    private static void login(String username, String password, BufferedReader in, PrintWriter requester, BufferedReader input) throws IOException {
+    private static int login(String username, String password, BufferedReader in, PrintWriter requester, BufferedReader input) throws IOException {
         String args = "login," + username + "," + password;
         requester.println(args);
         //receber resposta
         String reply = in.readLine();
+
         if (reply.equals("ok")) {
             System.out.println("Login feito com sucesso");
-            menu(in, requester, input);
-        } else {
+            //Notificao n = new Notificao(in,s);
+            //Thread t1 = new Thread(n);
+            //menu(in, requester, input);
+            return 1;
+        }else if(reply.equals("admin")){
+            System.out.println("Bem vindo admin");
+            return 2;
+        }else {
             System.out.println(reply);
+            return 0;
         }
     }
 
-    private static void menu(BufferedReader in, PrintWriter requester, BufferedReader input) throws IOException {
+    /**
+     * Método para ler a decisão do cliente em cada opção do menu.
+     * @param in resposta enviada do Servidor.
+     * @param requester pedido feito do Cliente.
+     * @param input input.
+     * @throws IOException
+     */
 
+    private static void menu(Socket s , BufferedReader in, PrintWriter requester, BufferedReader input) throws IOException {
+        System.out.println("olaaaaaa");
+        //BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        Notificao notificao = new Notificao(in,s);
+        Thread t = new Thread(notificao);
+       // t.start();
         boolean aux = true;
         String x, y;
         String args;
         String reply;
+        System.out.println("oleeeeeee");
         while (aux) {
+            System.out.println("olooooooo");
             System.out.println("1-Change my Localization\n2-Where To Go safely?\n3-I am Infected\n4-Add My Localization\n5-Change My Password\n0-Close");
             String option = input.readLine();
             switch (option) {
                 case "0":
                     aux = false;
-                    args = "quit," + myname + "," + mypass;
+                    args = "quit," + myname;
                     requester.println(args);
                     reply = in.readLine();
                     System.out.println(reply);
@@ -211,4 +265,34 @@ public class Client {
             }
         }
     }
+    public static void menuAdmin(BufferedReader in, PrintWriter pw, BufferedReader input) throws IOException {
+        boolean aux = true;
+        while(aux){
+            System.out.println("1-Descarregar Mapa\n0-Quit");
+            String option = input.readLine();
+            switch (option){
+                case "0":
+                    aux = false;
+                    String args = "quit," + myname;
+                    pw.println(args);
+                    String reply = in.readLine();
+                    System.out.println(reply);
+                    break;
+                case "1":
+                    System.out.println("Crie um ficheiro de destino do mapa e digite o seu input!");
+                    String path = input.readLine();
+                    pw.println("mapa" + "," + path);
+                    if(in.readLine().equals("1")){
+                        System.out.println("Mapa descarregado verifique o seu ficheiro");
+                    }else{
+                        System.out.println("Um erro aconteceu");
+                    }
+                    break;
+                default:
+                    break;
+
+            }
+        }
+    }
+
 }

@@ -1,11 +1,14 @@
 package Servidor;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Classe Servidor responsável por responder aos pedidos do Cliente.
+ */
 
 public class Servidor {
     public static void main(String[] args) throws IOException {
@@ -18,7 +21,9 @@ public class Servidor {
             System.out.println("User Connected");
         }
     }
-
+    /**
+     * Classe responsável por intrepertar os pedidos feitos por um cliente ao servidor.
+     */
 
     public static class ControladorUser implements Runnable {
 
@@ -30,9 +35,10 @@ public class Servidor {
             replyer = c;
             this.local = local;
         }
-
+        /**
+         * Método run que é executado pela thread.
+         */
         public void run() {
-
             try {
                 PrintWriter out = new PrintWriter(replyer.getOutputStream(), true);
                 BufferedReader in = new BufferedReader(new InputStreamReader(replyer.getInputStream()));
@@ -44,7 +50,7 @@ public class Servidor {
                     String pass = "";
                     String option = in.readLine();
                     String conteudo[] = option.split(",");
-                    System.out.println(option + "-------");
+                    System.out.println(option);
                     String ans = "";
                     switch (conteudo[0]) {
                         case "registar":
@@ -57,11 +63,20 @@ public class Servidor {
                         case "login":
                             user = conteudo[1];
                             pass = conteudo[2];
-                            ans = local.login(user, pass);
+                            System.out.println(user);
+                            System.out.println(pass);
+                            ans = local.login(user, pass );
                             if (ans.equals("ok")) {
+                                //ServerSocket ss = new ServerSocket(65000);
+                                //Socket not = ss.accept();
+                                local.getNotifcacoes().put(user,replyer);
                                 aux = false;
                                 out.println(ans);
-                            } else {
+                            } else if(ans.equals("admin")){
+                                out.println(ans);
+                                aux = false;
+                            }
+                            else {
                                 out.println(ans);
                             }
                             break;
@@ -70,6 +85,7 @@ public class Servidor {
                     aux = true;
                 String ans = "";
                     while (aux) {
+                        System.out.println("olaaaaa");
                         String option = in.readLine();
                         System.out.println(option);
 
@@ -81,10 +97,12 @@ public class Servidor {
                                 System.out.println(arrOfStr[1] + "," + arrOfStr[2] + "," + arrOfStr[3]);
                                 ans = local.moveTo(arrOfStr[1], Integer.parseInt(arrOfStr[2]), Integer.parseInt(arrOfStr[3]));
                                 System.out.println(ans);
+                                local.adicionaHistoricoUsers(arrOfStr[1], Integer.parseInt(arrOfStr[2]), Integer.parseInt(arrOfStr[3]));
                                 out.println("ok");
                                 break;
                             case "minhaLocalizacao":
                                 local.moveTo(arrOfStr[1], Integer.parseInt(arrOfStr[2]), Integer.parseInt(arrOfStr[3]));
+                                local.adicionaHistoricoUsers(arrOfStr[1], Integer.parseInt(arrOfStr[2]), Integer.parseInt(arrOfStr[3]));
                                 //local.adicionaNovaLocalizacao(arrOfStr[1],Integer.parseInt(arrOfStr[2]),Integer.parseInt(arrOfStr[3]));
                                 out.println("Localização adiconada");
                                 break;
@@ -93,16 +111,32 @@ public class Servidor {
                                 out.println(i);
                                 break;
                             case "infetado":
+                                List<Socket> notifica = new ArrayList<>();
                                 local.addInfetado(arrOfStr[1]);
                                 local.changePassword(arrOfStr[1],"userInfected##");
+                                local.adicionaHistoricoInfecoes(arrOfStr[1]);
+                                notifica = local.notifica(arrOfStr[1]);
+                                if(notifica!=null) {
+                                    for (int iterator = 0; iterator < notifica.size(); iterator++) {
+                                        System.out.println("olaaaaaaaaa");
+                                        PrintWriter pw = new PrintWriter(notifica.get(iterator).getOutputStream(), true);
+                                        pw.println("Uma pessoa que você cruzou ficou infetado, faça isolamento!");
+                                    }
+                                }
                                 out.println("Faça quarentena e um desejo de melhoras");
                                 break;
                             case "mudaPass":
                                 local.changePassword(arrOfStr[1],arrOfStr[2]);
                                 out.println("ok");
                                 break;
+                            case "mapa":
+                                System.out.println("coise");
+                                int check = local.escreveMapa(arrOfStr[1]);
+                                out.println(check);
                             case "quit":
                                 out.println("good bye!");
+                                if(!arrOfStr[1].equals("admin"))
+                                local.getNotifcacoes().remove(arrOfStr[1]);
                                 aux = false;
                                 break;
                         }
